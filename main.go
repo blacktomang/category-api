@@ -68,7 +68,8 @@ func DeleteCategory(ID int) error {
 	for i := range Categories {
 		currentCategory := Categories[i]
 		if currentCategory.ID == ID {
-			Categories = append(Categories[:i], Categories[:i+1]...)
+			Categories = append(Categories[:i], Categories[i+1:]...)
+			return nil
 		}
 	}
 	return errors.New("NotFound")
