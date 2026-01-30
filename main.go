@@ -2,8 +2,9 @@ package main
 
 import (
 	"category-api/database"
-	"encoding/json"
-	"errors"
+	"category-api/handlers"
+	"category-api/repositories"
+	"category-api/services"
 	"fmt"
 	"io"
 	"log"
@@ -14,73 +15,6 @@ import (
 
 	"github.com/spf13/viper"
 )
-
-type Category struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-// core
-var Categories = []Category{
-	{
-		ID:          1,
-		Name:        "Makanan",
-		Description: "Makanan adalah sesuatu yg bisa dimakan",
-	},
-}
-
-func CreateCategory(data *Category) error {
-	if data.Name == "" || data.Description == "" {
-		return errors.New("Invalid Payload")
-	}
-	data.ID = len(Categories) + 1
-	Categories = append(Categories, *data)
-	return nil
-}
-
-func GeCategories() []Category {
-	return Categories
-}
-
-func GetCategoryByID(ID int) (Category, error) {
-	for i := 0; i < len(Categories); i++ {
-		currentCategory := Categories[i]
-		if currentCategory.ID == ID {
-			return currentCategory, nil
-		}
-	}
-	return Category{}, errors.New("NotFound")
-}
-
-func UpdateCategory(ID int, data *Category) error {
-	if data.Name == "" || data.Description == "" {
-		return errors.New("Invalid Payload")
-	}
-
-	for i := 0; i < len(Categories); i++ {
-		currentCategory := Categories[i]
-		if currentCategory.ID == ID {
-			data.ID = ID
-			Categories[i] = *data
-			return nil
-		}
-	}
-	return errors.New("NotFound")
-}
-
-func DeleteCategory(ID int) error {
-	for i := range Categories {
-		currentCategory := Categories[i]
-		if currentCategory.ID == ID {
-			Categories = append(Categories[:i], Categories[i+1:]...)
-			return nil
-		}
-	}
-	return errors.New("NotFound")
-}
-
-// end core
 
 type Config struct {
 	Port   string `mapstructure:"PORT"`
@@ -113,6 +47,8 @@ const notSwagger = `
 </ul>
 `
 
+const API_PREFIX = "/api"
+
 func main() {
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -140,106 +76,19 @@ func main() {
 		}
 	})
 
-	http.HandleFunc("/categories/", func(response http.ResponseWriter, request *http.Request) {
-		method := request.Method
-		id, err := GetIDFromUrl(request.URL.Path, "/categories/")
+	categoryRepo := repositories.NewCategoryRepository(db)
+	categoryService := services.NewCategoryService(categoryRepo)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
 
-		if err != nil {
-			http.Error(response, "Invalid Category ID", http.StatusBadRequest)
-			return
-		}
+	productRepo := repositories.NewProductRepository(db)
+	productService := services.NewProductService(productRepo)
+	productHandler := handlers.NewProductHandler(productService)
 
-		if method == http.MethodGet {
-			result, err := GetCategoryByID(id)
+	http.HandleFunc(API_PREFIX+"/categories/", categoryHandler.HandleCategoryByID)
+	http.HandleFunc(API_PREFIX+"/categories", categoryHandler.HandleCategories)
 
-			if err != nil {
-				http.Error(response, "Not Found", http.StatusNotFound)
-				return
-			}
-
-			response.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(response).Encode(result)
-			return
-
-		}
-
-		if method == http.MethodPut {
-			var updatedCategory Category
-
-			json.NewDecoder(request.Body).Decode(&updatedCategory)
-			err := UpdateCategory(id, &updatedCategory)
-
-			if err != nil {
-				if err.Error() == "NotFound" {
-					http.Error(response, "Not Found", http.StatusNotFound)
-					return
-				}
-				http.Error(response, "Invalid Payload", http.StatusBadRequest)
-				return
-			}
-
-			response.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(response).Encode(map[string]string{
-				"status":  "OK",
-				"message": "Category updated",
-			})
-			return
-
-		}
-
-		if method == http.MethodDelete {
-			err := DeleteCategory(id)
-
-			if err != nil {
-				http.Error(response, "Not Found", http.StatusNotFound)
-				return
-			}
-
-			response.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(response).Encode(map[string]string{
-				"status":  "OK",
-				"message": "Category deleted",
-			})
-			return
-
-		}
-
-		http.Error(response, "Invalid Method", http.StatusMethodNotAllowed)
-	})
-
-	http.HandleFunc("/categories", func(response http.ResponseWriter, request *http.Request) {
-		response.Header().Set("Content-Type", "application/json")
-
-		if request.Method == http.MethodGet {
-			result := GeCategories()
-			json.NewEncoder(response).Encode(result)
-			return
-		}
-
-		if request.Method == http.MethodPost {
-			var newCategory Category
-			err := json.NewDecoder(request.Body).Decode(&newCategory)
-			if err != nil {
-				http.Error(response, "Payload not valid", http.StatusBadRequest)
-				return
-			}
-
-			createErr := CreateCategory(&newCategory)
-
-			if createErr != nil {
-				http.Error(response, "Failed to store category", http.StatusInternalServerError)
-				return
-			}
-
-			response.WriteHeader(http.StatusCreated)
-			json.NewEncoder(response).Encode(newCategory)
-			return
-		}
-
-		http.Error(response, "Invalid Method", http.StatusMethodNotAllowed)
-
-	})
-
+	http.HandleFunc(API_PREFIX+"/products", productHandler.HandleProducts)
+	http.HandleFunc(API_PREFIX+"/products/", productHandler.HandleProductByID)
 	fmt.Printf("Server running on port %v", config.Port)
 	serverError := http.ListenAndServe(config.Port, nil)
 	if serverError != nil {
