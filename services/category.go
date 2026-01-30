@@ -30,9 +30,9 @@ func (s *CategoryService) CreateCategory(category *models.Category) error {
 		return errors.New("Invalid Payload")
 	}
 
-	_, err := s.repo.GetCategoryByName(category.Name)
+	result, _ := s.repo.GetCategoryByName(category.Name)
 
-	if err != nil {
+	if result != nil {
 		return errors.New("Category already exists")
 	}
 	return s.repo.CreateCategory(category)

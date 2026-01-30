@@ -30,9 +30,9 @@ func (s *ProductService) CreateProduct(product *models.Product) error {
 		return errors.New("Invalid Payload")
 	}
 
-	_, err := s.repo.GetProductByName(product.Name)
+	res, _ := s.repo.GetProductByName(product.Name)
 
-	if err != nil {
+	if res != nil {
 		return errors.New("Product already exists")
 	}
 
