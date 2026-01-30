@@ -89,8 +89,9 @@ func main() {
 
 	http.HandleFunc(API_PREFIX+"/products", productHandler.HandleProducts)
 	http.HandleFunc(API_PREFIX+"/products/", productHandler.HandleProductByID)
-	fmt.Printf("Server running on port %v", config.Port)
-	serverError := http.ListenAndServe(config.Port, nil)
+	addr := "0.0.0.0:" + config.Port
+	fmt.Printf("Server running on port %v", addr)
+	serverError := http.ListenAndServe(addr, nil)
 	if serverError != nil {
 		fmt.Println("Error starting server:", serverError)
 	}
