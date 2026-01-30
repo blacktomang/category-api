@@ -29,21 +29,38 @@ func GetIDFromUrl(path string, prefix string) (int, error) {
 
 const notSwagger = `
 <ul>
+categories
     <li>
-        METHOD: GET, Link <a href="/categories">/categories</a>
+        METHOD: GET, Link <a href="/api/categories">/api/categories</a>
     </li>
     <li>
-        METHOD:  POST, Link <a href="/categories">/categories</a>
+        METHOD:  POST, Link <a href="/api/categories">/api/categories</a>
     </li>
     <li>
-        METHOD:  GET, Link <a href="/categories/1">/categories/{id}</a>
+        METHOD:  GET, Link <a href="/api/categories/1">/api/categories/{id}</a>
     </li>
     <li>
-        METHOD:  PUT, Link <a href="/categories/1">/categories/{id}</a>
+        METHOD:  PUT, Link <a href="/api/categories/1">/api/categories/{id}</a>
     </li>
     <li>
-        METHOD:  DELETE, Link <a href="/categories/1">/categories/{id}</a>
+        METHOD:  DELETE, Link <a href="/api/categories/1">/api/categories/{id}</a>
     </li>
+products
+	<li>
+		METHOD: GET, Link <a href="/api/products">/api/products</a>
+	</li>
+	<li>
+		METHOD:  POST, Link <a href="/api/products">/api/products</a>
+	</li>
+	<li>
+		METHOD:  GET, Link <a href="/api/products/1">/api/products/{id}</a>
+	</li>
+	<li>
+		METHOD:  PUT, Link <a href="/api/products/1">/api/products/{id}</a>
+	</li>
+	<li>
+		METHOD:  DELETE, Link <a href="/api/products/1">/api/products/{id}</a>
+	</li>
 </ul>
 `
 
