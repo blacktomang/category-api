@@ -1,13 +1,18 @@
 package main
 
 import (
+	"category-api/database"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 type Category struct {
@@ -77,7 +82,10 @@ func DeleteCategory(ID int) error {
 
 // end core
 
-const PORT = ":8080"
+type Config struct {
+	Port   string `mapstructure:"PORT"`
+	DBConn string `mapstructure:"DBCONN"`
+}
 
 func GetIDFromUrl(path string, prefix string) (int, error) {
 	idStr := strings.TrimPrefix(path, prefix)
@@ -106,6 +114,24 @@ const notSwagger = `
 `
 
 func main() {
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if _, err := os.Stat(".env"); err == nil {
+		viper.SetConfigFile(".env")
+		_ = viper.ReadInConfig()
+	}
+
+	config := Config{
+		Port:   viper.GetString("PORT"),
+		DBConn: viper.GetString("DBCONN"),
+	}
+
+	db, err := database.InitDB(config.DBConn)
+	if err != nil {
+		log.Fatal("Failed to initialize database:", err)
+	}
+	defer db.Close()
 
 	http.HandleFunc("/", func(response http.ResponseWriter, request *http.Request) {
 		if request.Method == http.MethodGet {
@@ -214,10 +240,10 @@ func main() {
 
 	})
 
-	fmt.Printf("Server running on port %v", PORT)
-	err := http.ListenAndServe(PORT, nil)
-	if err != nil {
-		fmt.Println("Error starting server:", err)
+	fmt.Printf("Server running on port %v", config.Port)
+	serverError := http.ListenAndServe(config.Port, nil)
+	if serverError != nil {
+		fmt.Println("Error starting server:", serverError)
 	}
 
 }
