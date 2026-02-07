@@ -31,7 +31,7 @@ func (repo *TransactionRepository) CreateTransaction(items []models.CheckoutItem
 		var productPrice, stock int
 		var productName string
 
-		err := tx.QueryRow("SELECT name, price, stock FROM products WHERE id = $1", item.ProductID).Scan(&productName, &productPrice, &stock)
+		err = tx.QueryRow("SELECT name, price, stock FROM products WHERE id = $1", item.ProductID).Scan(&productName, &productPrice, &stock)
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("product id %d not found", item.ProductID)
 		}
@@ -53,6 +53,7 @@ func (repo *TransactionRepository) CreateTransaction(items []models.CheckoutItem
 			Quantity:    item.Quantity,
 			Subtotal:    subtotal,
 		})
+		fmt.Printf("Appended detail, new length: %d\n", len(details))
 	}
 
 	var transactionID int
@@ -63,11 +64,17 @@ func (repo *TransactionRepository) CreateTransaction(items []models.CheckoutItem
 
 	for i := range details {
 		details[i].TransactionID = transactionID
-		_, err = tx.Exec("INSERT INTO transaction_details (transaction_id, product_id, quantity, subtotal) VALUES ($1, $2, $3, $4)",
-			transactionID, details[i].ProductID, details[i].Quantity, details[i].Subtotal)
+		var detailID int
+		err = tx.QueryRow("INSERT INTO transaction_details (transaction_id, product_id, quantity, subtotal) VALUES ($1, $2, $3, $4) RETURNING id",
+			transactionID, details[i].ProductID, details[i].Quantity, details[i].Subtotal).Scan(&detailID)
+
+		fmt.Printf("is it error %v\n", err)
 		if err != nil {
 			return nil, err
 		}
+		details[i].ID = detailID
+
+		fmt.Printf("returned id : %v\n", detailID)
 	}
 
 	if err := tx.Commit(); err != nil {
