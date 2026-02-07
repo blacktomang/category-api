@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"category-api/models"
@@ -62,9 +61,6 @@ func (h *TransactionHandler) ReportRange(w http.ResponseWriter, r *http.Request)
 
 	var report *models.Report
 	var err error
-
-	fmt.Printf("start date is %v and type is %T\n", startDate, startDate)
-	fmt.Printf("end date is %v and type is %T\n", endDate, endDate)
 
 	if startDate == "" || endDate == "" {
 		report, err = h.service.ReportToday()

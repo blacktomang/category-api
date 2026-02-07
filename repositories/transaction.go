@@ -53,7 +53,6 @@ func (repo *TransactionRepository) CreateTransaction(items []models.CheckoutItem
 			Quantity:    item.Quantity,
 			Subtotal:    subtotal,
 		})
-		fmt.Printf("Appended detail, new length: %d\n", len(details))
 	}
 
 	var transactionID int
@@ -68,13 +67,10 @@ func (repo *TransactionRepository) CreateTransaction(items []models.CheckoutItem
 		err = tx.QueryRow("INSERT INTO transaction_details (transaction_id, product_id, quantity, subtotal) VALUES ($1, $2, $3, $4) RETURNING id",
 			transactionID, details[i].ProductID, details[i].Quantity, details[i].Subtotal).Scan(&detailID)
 
-		fmt.Printf("is it error %v\n", err)
 		if err != nil {
 			return nil, err
 		}
 		details[i].ID = detailID
-
-		fmt.Printf("returned id : %v\n", detailID)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -133,7 +129,9 @@ func (repo *TransactionRepository) Report(dates []string) (*models.Report, error
 		return &report, nil
 	} else if len(dates) == 2 {
 		revenueAndTotalquery := "SELECT COUNT(id) as total_transactions, COALESCE(SUM(total_amount), 0) as total_revenue FROM transactions WHERE created_at >= $1 AND created_at <= $2"
-		transactionResult, transationErr := repo.db.Query(revenueAndTotalquery, dates[0], dates[1])
+		startDate := dates[0] + " 00:00:00"
+		endDate := dates[1] + " 23:59:59"
+		transactionResult, transationErr := repo.db.Query(revenueAndTotalquery, startDate, endDate)
 		if transationErr != nil {
 			return nil, transationErr
 		}
@@ -156,7 +154,7 @@ func (repo *TransactionRepository) Report(dates []string) (*models.Report, error
 		ORDER BY total_sold DESC
 		LIMIT 1`
 
-		mostPopularProductResult, mostPopularProductErr := repo.db.Query(mostPopularProductQuery, dates[0], dates[1])
+		mostPopularProductResult, mostPopularProductErr := repo.db.Query(mostPopularProductQuery, startDate, endDate)
 
 		if mostPopularProductErr != nil {
 			return nil, mostPopularProductErr
