@@ -101,11 +101,20 @@ func main() {
 	productService := services.NewProductService(productRepo)
 	productHandler := handlers.NewProductHandler(productService)
 
+	transactionRepo := repositories.NewTransactionRepository(db)
+	transactionService := services.NewTransactionService(transactionRepo)
+	transactionHandler := handlers.NewTransactionHandler(transactionService)
+
 	http.HandleFunc(API_PREFIX+"/categories/", categoryHandler.HandleCategoryByID)
 	http.HandleFunc(API_PREFIX+"/categories", categoryHandler.HandleCategories)
 
 	http.HandleFunc(API_PREFIX+"/products", productHandler.HandleProducts)
 	http.HandleFunc(API_PREFIX+"/products/", productHandler.HandleProductByID)
+
+	http.HandleFunc(API_PREFIX+"/checkout", transactionHandler.HandleCheckout)
+	http.HandleFunc(API_PREFIX+"/report", transactionHandler.ReportRange)
+	http.HandleFunc(API_PREFIX+"/report/hari-ini", transactionHandler.ReportToday)
+
 	addr := "0.0.0.0:" + config.Port
 	fmt.Printf("Server running on port %v", addr)
 	serverError := http.ListenAndServe(addr, nil)
